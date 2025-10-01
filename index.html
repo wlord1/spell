@@ -1,1 +1,504 @@
-c
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Spelling Bee Trainer — Grade 5</title>
+  <style>
+    :root{
+      --bg:#0f172a;        /* slate-900 */
+      --card:#111827;      /* gray-900 */
+      --muted:#94a3b8;     /* slate-400 */
+      --text:#e5e7eb;      /* gray-200 */
+      --accent:#22c55e;    /* green-500 */
+      --accent-2:#38bdf8;  /* sky-400 */
+      --warn:#f59e0b;      /* amber-500 */
+      --err:#ef4444;       /* red-500 */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,#0d1328,#0f172a 20%,#0b1022);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;}
+    .wrap{max-width:980px;margin:0 auto;padding:24px}
+    h1{font-size:clamp(24px,3vw,36px);margin:0 0 12px;display:flex;gap:10px;align-items:center}
+    h1 .heart{display:inline-block;width:28px;height:28px;position:relative}
+    .heart:before,.heart:after{content:"";position:absolute;width:50%;height:80%;background:#ef4444;border-radius:12px 12px 8px 8px;left:25%;top:18%;transform:rotate(45deg);}
+    .heart:after{left:auto;right:25%;transform:rotate(-45deg)}
+    p.sub{color:var(--muted);margin-top:0}
+
+    .grid{display:grid;gap:16px}
+    @media(min-width:880px){.grid{grid-template-columns:1fr 1fr}}
+
+    .card{background:rgba(17,24,39,.7);backdrop-filter:saturate(120%) blur(6px);border:1px solid rgba(148,163,184,.2);border-radius:16px;padding:16px;box-shadow:0 10px 24px rgba(0,0,0,.3)}
+    .card h2{margin:0 0 10px;font-size:20px}
+
+    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .row > *{flex:0 0 auto}
+    .grow{flex:1 1 auto}
+
+    input[type=text], textarea, select, input[type=number]{width:100%;border:1px solid rgba(148,163,184,.3);background:#0b1222;color:var(--text);padding:10px 12px;border-radius:10px;outline:none}
+    textarea{min-height:110px}
+
+    button{border:1px solid rgba(148,163,184,.3);background:linear-gradient(180deg,#111827,#0b1222);color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer;transition:.15s transform,.15s filter;}
+    button:hover{filter:brightness(1.1)}
+    button:active{transform:translateY(1px)}
+    .btn-accent{border-color:rgba(56,189,248,.5);box-shadow:0 0 0 2px rgba(56,189,248,.15) inset}
+    .btn-green{border-color:rgba(34,197,94,.5);box-shadow:0 0 0 2px rgba(34,197,94,.15) inset}
+    .btn-ghost{background:transparent;border-color:transparent}
+
+    .chip{display:inline-flex;align-items:center;gap:6px;border:1px dashed rgba(148,163,184,.35);padding:6px 10px;border-radius:999px;color:var(--muted);font-size:13px}
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    .center{display:flex;align-items:center;justify-content:center}
+    .hidden{display:none !important}
+
+    .wordlist{display:flex;flex-wrap:wrap;gap:8px}
+    .tag{background:#0b1222;border:1px solid rgba(148,163,184,.25);padding:6px 10px;border-radius:999px}
+
+    .bigword{font-size:min(8vw,42px);letter-spacing:.02em;text-align:center;margin:12px 0 4px}
+    .sentence{color:var(--muted);text-align:center}
+
+    .status{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-top:8px}
+    .pill{border-radius:999px;padding:6px 10px;border:1px solid rgba(148,163,184,.25)}
+    .ok{color:#22c55e;border-color:rgba(34,197,94,.4)}
+    .bad{color:#ef4444;border-color:rgba(239,68,68,.4)}
+
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{padding:10px;border-bottom:1px solid rgba(148,163,184,.2);text-align:left}
+
+    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;background:#0b1222;border:1px solid rgba(148,163,184,.35);padding:2px 6px;border-radius:6px}
+
+    .footer{margin-top:16px;color:var(--muted);font-size:12px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1><span class="heart" aria-hidden="true"></span> Spelling Bee Trainer <span class="muted small">(for Adelyn)</span></h1>
+    <p class="sub">Build a list, choose a mode, and practice with audio prompts. Great for 5th grade: supports example sentences, case sensitivity, and a graded test with a misspelled-words review.</p>
+
+    <div class="grid">
+      <!-- Left: Word List & Settings -->
+      <section class="card">
+        <h2>1) Word List</h2>
+        <div class="row">
+          <input id="word" type="text" placeholder="word (e.g., 'necessary')" />
+        </div>
+        <div class="row" style="margin-top:6px">
+          <input id="sentence" type="text" placeholder="optional sentence for context" />
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button id="addBtn" class="btn-green">Add word</button>
+          <button id="clearBtn" class="btn-ghost">Clear list</button>
+          <span class="chip">Tip: <span class="kbd">Enter</span> adds word</span>
+        </div>
+        <div id="list" class="wordlist" style="margin-top:12px"></div>
+
+        <details style="margin-top:12px">
+          <summary class="muted">Import / Export list</summary>
+          <div class="row" style="margin-top:8px">
+            <textarea id="jsonIO" class="grow" placeholder='[{"w":"necessary","s":"It's necessary to study."},{"w":"rhythm"}]'></textarea>
+          </div>
+          <div class="row">
+            <button id="importBtn" class="btn-accent">Import JSON</button>
+            <button id="exportBtn">Copy JSON</button>
+            <button id="downloadBtn">Download .json</button>
+          </div>
+        </details>
+
+        <hr style="border:0;border-top:1px solid rgba(148,163,184,.2);margin:16px 0">
+
+        <h2>2) Settings</h2>
+        <div class="row">
+          <label class="chip"><input id="caseSensitive" type="checkbox" /> Case sensitive grading</label>
+          <label class="chip"><input id="stripPunct" type="checkbox" checked /> Ignore apostrophes / hyphens</label>
+          <label class="chip"><input id="showWordPractice" type="checkbox" checked /> Show word in Practice mode</label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <div class="grow">
+            <label class="small muted">Voice</label>
+            <select id="voiceSelect"></select>
+          </div>
+          <div>
+            <label class="small muted">Rate</label>
+            <input id="rate" type="number" min="0.5" max="1.5" step="0.1" value="1" style="width:90px">
+          </div>
+          <div>
+            <label class="small muted">Volume</label>
+            <input id="volume" type="number" min="0" max="1" step="0.1" value="1" style="width:90px">
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Modes & Runner -->
+      <section class="card">
+        <h2>3) Choose a Mode</h2>
+        <div class="row">
+          <button id="practiceBtn" class="btn-accent">Practice</button>
+          <button id="testBtn" class="">Test</button>
+          <input id="count" type="number" min="1" value="10" style="width:110px" />
+          <span class="chip"># of words</span>
+        </div>
+
+        <div id="runner" style="margin-top:12px">
+          <div id="promptWrap" class="center">
+            <div style="width:100%">
+              <div id="bigWord" class="bigword hidden"></div>
+              <div id="sentenceHint" class="sentence hidden"></div>
+            </div>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <input id="answer" type="text" class="grow" placeholder="Type the spelling and press Enter" autocomplete="off" />
+            <button id="speakBtn">🔊 Listen</button>
+            <button id="hintBtn">Hint</button>
+            <button id="revealBtn">Reveal</button>
+          </div>
+          <div class="status small">
+            <div>
+              <span id="progress" class="pill">0 / 0</span>
+              <span id="last" class="pill"></span>
+            </div>
+            <div class="muted">Shortcuts: <span class="kbd">Enter</span> submit, <span class="kbd">⌘/Ctrl+L</span> listen, <span class="kbd">⌘/Ctrl+H</span> hint</div>
+          </div>
+        </div>
+
+        <div id="results" class="hidden" style="margin-top:12px">
+          <h3>Results</h3>
+          <div class="row">
+            <div id="score" class="pill"></div>
+            <button id="retryMissed" class="btn-green hidden">Retry missed only</button>
+          </div>
+          <table class="table" id="resultsTable"></table>
+        </div>
+      </section>
+    </div>
+
+    <div class="footer">Data is saved locally in your browser. No accounts needed. Works offline once loaded.</div>
+  </div>
+
+  <script>
+    // ----- Persistence helpers -----
+    const store = {
+      get key(){ return 'spellingbee_v1'; },
+      save(data){ localStorage.setItem(this.key, JSON.stringify(data)); },
+      load(){ try{ return JSON.parse(localStorage.getItem(this.key)||'{}'); }catch{return {}} }
+    }
+
+    // ----- State -----
+    const state = {
+      words: [], // {w: 'word', s: 'sentence?'}
+      mode: 'practice',
+      order: [],
+      index: 0,
+      answered: [], // {w, correct, user}
+      showWord: true,
+      caseSensitive: false,
+      stripPunct: true,
+      voice: null,
+      rate: 1,
+      volume: 1,
+    }
+
+    // ----- Elements -----
+    const els = {
+      word: document.getElementById('word'),
+      sentence: document.getElementById('sentence'),
+      addBtn: document.getElementById('addBtn'),
+      clearBtn: document.getElementById('clearBtn'),
+      list: document.getElementById('list'),
+      jsonIO: document.getElementById('jsonIO'),
+      importBtn: document.getElementById('importBtn'),
+      exportBtn: document.getElementById('exportBtn'),
+      downloadBtn: document.getElementById('downloadBtn'),
+
+      caseSensitive: document.getElementById('caseSensitive'),
+      stripPunct: document.getElementById('stripPunct'),
+      showWordPractice: document.getElementById('showWordPractice'),
+      voiceSelect: document.getElementById('voiceSelect'),
+      rate: document.getElementById('rate'),
+      volume: document.getElementById('volume'),
+
+      practiceBtn: document.getElementById('practiceBtn'),
+      testBtn: document.getElementById('testBtn'),
+      count: document.getElementById('count'),
+
+      bigWord: document.getElementById('bigWord'),
+      sentenceHint: document.getElementById('sentenceHint'),
+      answer: document.getElementById('answer'),
+      speakBtn: document.getElementById('speakBtn'),
+      hintBtn: document.getElementById('hintBtn'),
+      revealBtn: document.getElementById('revealBtn'),
+      progress: document.getElementById('progress'),
+      last: document.getElementById('last'),
+
+      results: document.getElementById('results'),
+      score: document.getElementById('score'),
+      resultsTable: document.getElementById('resultsTable'),
+      retryMissed: document.getElementById('retryMissed'),
+    }
+
+    // ----- Utility functions -----
+    const clone = o => JSON.parse(JSON.stringify(o));
+    const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a }
+    const normalize = (s) => {
+      if(state.stripPunct){ s = s.replace(/[\'\-]/g,'') }
+      return state.caseSensitive ? s : s.toLowerCase();
+    }
+
+    function speak(text, opts={}){
+      if(!('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      if(state.voice) u.voice = state.voice;
+      u.rate = state.rate; u.volume = state.volume; u.pitch = 1;
+      speechSynthesis.speak(u);
+    }
+    function speakWord(wObj){
+      const {w,s} = wObj;
+      speak(w);
+      if(s) setTimeout(()=>speak(s), Math.max(600, 900/state.rate));
+    }
+
+    // ----- Rendering -----
+    function renderList(){
+      els.list.innerHTML = '';
+      state.words.forEach((wObj, idx)=>{
+        const tag = document.createElement('span');
+        tag.className='tag';
+        tag.textContent = wObj.w;
+        tag.title = wObj.s||'';
+        tag.addEventListener('click',()=>{
+          if(confirm(`Remove "${wObj.w}"?`)){
+            state.words.splice(idx,1); saveAndRender();
+          }
+        })
+        els.list.appendChild(tag)
+      })
+    }
+
+    function renderRunner(){
+      const total = state.order.length;
+      els.progress.textContent = `${Math.min(state.index, total) } / ${total}`;
+      els.last.textContent = '';
+
+      const done = state.index >= total;
+      if(done){
+        finish();
+        return;
+      }
+
+      const cur = state.words[state.order[state.index]];
+      const showWord = state.mode==='practice' && state.showWord;
+      els.bigWord.textContent = showWord ? cur.w : '';
+      els.bigWord.classList.toggle('hidden', !showWord);
+
+      const hasSent = !!cur.s;
+      els.sentenceHint.textContent = hasSent ? cur.s : '';
+      els.sentenceHint.classList.toggle('hidden', !hasSent);
+
+      els.answer.value = '';
+      els.answer.focus();
+    }
+
+    function renderSettings(){
+      els.caseSensitive.checked = state.caseSensitive;
+      els.stripPunct.checked = state.stripPunct;
+      els.showWordPractice.checked = state.showWord;
+      els.rate.value = state.rate; els.volume.value = state.volume;
+    }
+
+    function save(){
+      store.save({words: state.words, cfg:{caseSensitive: state.caseSensitive, stripPunct: state.stripPunct, showWord: state.showWord, rate: state.rate, volume: state.volume, voiceName: state.voice?.name||null}})
+    }
+    function load(){
+      const data = store.load();
+      if(data.words) state.words = data.words;
+      if(data.cfg){
+        state.caseSensitive = !!data.cfg.caseSensitive;
+        state.stripPunct = data.cfg.stripPunct!==false;
+        state.showWord = data.cfg.showWord!==false;
+        state.rate = Number(data.cfg.rate||1);
+        state.volume = Number(data.cfg.volume||1);
+      }
+      renderList();
+      renderSettings();
+    }
+
+    // ----- Session control -----
+    function begin(mode){
+      if(state.words.length===0){ alert('Add a few words first.'); return }
+      state.mode = mode;
+      const n = Math.min(parseInt(els.count.value||10,10), state.words.length);
+      state.order = shuffle([...Array(state.words.length).keys()]).slice(0,n);
+      state.index = 0;
+      state.answered = [];
+      els.results.classList.add('hidden');
+      renderRunner();
+      // For tests, auto-speak word first
+      if(mode==='test') speakWord(currentWord());
+    }
+
+    function currentWord(){
+      return state.words[state.order[state.index]];
+    }
+
+    function submit(){
+      if(state.index >= state.order.length) return;
+      const cur = currentWord();
+      const user = els.answer.value.trim();
+      const correct = normalize(user) === normalize(cur.w);
+      state.answered.push({w:cur.w, s:cur.s||'', user, correct});
+      els.last.textContent = (correct? '✔ Correct' : `✖ ${user || '—'} → ${cur.w}`);
+      els.last.className = 'pill ' + (correct? 'ok':'bad');
+      state.index++;
+      renderRunner();
+      if(state.mode==='test' && state.index < state.order.length){
+        setTimeout(()=>speakWord(currentWord()), 250);
+      }
+    }
+
+    function finish(){
+      els.results.classList.remove('hidden');
+      const total = state.answered.length;
+      const correct = state.answered.filter(a=>a.correct).length;
+      const pct = Math.round(100*correct/Math.max(1,total));
+      els.score.textContent = `Score: ${correct} / ${total} (${pct}%)`;
+      els.resultsTable.innerHTML = '<tr><th>#</th><th>Word</th><th>Your Answer</th><th>Result</th><th>Sentence</th></tr>' +
+        state.answered.map((a,i)=>`<tr><td>${i+1}</td><td>${a.w}</td><td>${a.user||'—'}</td><td>${a.correct? '✔':'✖'}</td><td>${a.s||''}</td></tr>`).join('');
+      const missed = state.answered.filter(a=>!a.correct);
+      els.retryMissed.classList.toggle('hidden', missed.length===0);
+      els.progress.textContent = `${state.order.length} / ${state.order.length}`;
+    }
+
+    function retryMissedOnly(){
+      const missed = state.answered.filter(a=>!a.correct);
+      if(missed.length===0){ alert('Nothing to retry. Great job!'); return }
+      // rebuild words array as just missed (preserve sentences)
+      const map = new Map(state.words.map(o=>[o.w,o]));
+      state.order = shuffle(missed.map(m=> state.words.findIndex(o=>o.w===m.w))).filter(i=>i>=0);
+      state.index = 0; state.answered = [];
+      renderRunner();
+      if(state.mode==='test') speakWord(currentWord());
+    }
+
+    // ----- Event wiring -----
+    els.addBtn.addEventListener('click', ()=>{
+      const w = els.word.value.trim();
+      const s = els.sentence.value.trim();
+      if(!w){ els.word.focus(); return }
+      state.words.push({w, ...(s? {s}: {})});
+      els.word.value = ''; els.sentence.value='';
+      saveAndRender();
+      els.word.focus();
+    })
+    els.word.addEventListener('keydown', e=>{ if(e.key==='Enter') els.addBtn.click() })
+    els.sentence.addEventListener('keydown', e=>{ if(e.key==='Enter') els.addBtn.click() })
+
+    els.clearBtn.addEventListener('click', ()=>{
+      if(confirm('Clear the entire list?')){ state.words=[]; saveAndRender() }
+    })
+
+    els.practiceBtn.addEventListener('click', ()=> begin('practice'))
+    els.testBtn.addEventListener('click', ()=> begin('test'))
+    els.answer.addEventListener('keydown', e=>{ if(e.key==='Enter') submit() })
+
+    els.speakBtn.addEventListener('click', ()=>{
+      if(state.index < state.order.length) speakWord(currentWord())
+    })
+
+    els.hintBtn.addEventListener('click', ()=>{
+      if(state.index >= state.order.length) return;
+      const {w} = currentWord();
+      const shown = els.answer.value;
+      const next = w.slice(0, shown.length+1);
+      els.answer.value = next;
+      els.answer.focus();
+    })
+
+    els.revealBtn.addEventListener('click', ()=>{
+      if(state.index >= state.order.length) return;
+      const {w} = currentWord();
+      els.answer.value = w;
+      els.answer.focus();
+    })
+
+    els.caseSensitive.addEventListener('change', e=>{ state.caseSensitive = e.target.checked; save() })
+    els.stripPunct.addEventListener('change', e=>{ state.stripPunct = e.target.checked; save() })
+    els.showWordPractice.addEventListener('change', e=>{ state.showWord = e.target.checked; save() })
+
+    els.rate.addEventListener('change', e=>{ state.rate = Number(e.target.value||1); save() })
+    els.volume.addEventListener('change', e=>{ state.volume = Number(e.target.value||1); save() })
+
+    els.retryMissed.addEventListener('click', retryMissedOnly)
+
+    // Shortcuts
+    window.addEventListener('keydown', (e)=>{
+      if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='l'){ e.preventDefault(); els.speakBtn.click(); }
+      if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='h'){ e.preventDefault(); els.hintBtn.click(); }
+    })
+
+    // Import/Export
+    els.exportBtn.addEventListener('click', ()=>{
+      els.jsonIO.value = JSON.stringify(state.words);
+      els.jsonIO.select(); document.execCommand('copy');
+    })
+    els.importBtn.addEventListener('click', ()=>{
+      try{
+        const arr = JSON.parse(els.jsonIO.value||'[]');
+        if(!Array.isArray(arr)) throw new Error('JSON must be an array');
+        const cleaned = arr.map(x=>({w:String(x.w||'').trim(), s:String(x.s||'').trim()})).filter(x=>x.w);
+        state.words = cleaned; saveAndRender();
+      }catch(err){ alert('Invalid JSON') }
+    })
+    els.downloadBtn.addEventListener('click', ()=>{
+      const blob = new Blob([JSON.stringify(state.words,null,2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'spelling-list.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    })
+
+    // Speech synthesis voices
+    function loadVoices(){
+      const voices = speechSynthesis.getVoices();
+      els.voiceSelect.innerHTML = '<option value="">System Default</option>' +
+        voices.map((v,i)=>`<option value="${i}">${v.name} ${v.lang.includes('en')?'' : '('+v.lang+')'}</option>`).join('');
+      const saved = store.load().cfg?.voiceName;
+      if(saved){
+        const idx = voices.findIndex(v=>v.name===saved);
+        if(idx>=0){ els.voiceSelect.value = String(idx); state.voice = voices[idx]; }
+      }
+    }
+    speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    els.voiceSelect.addEventListener('change', e=>{
+      const voices = speechSynthesis.getVoices();
+      const idx = Number(e.target.value);
+      state.voice = Number.isFinite(idx) ? voices[idx] : null;
+      save();
+    })
+
+    function saveAndRender(){ save(); renderList(); }
+
+    // Init
+    load();
+
+    // Sample starter list if empty
+    if(state.words.length===0){
+      state.words = [
+        {w:'necessary', s:"It's necessary to study."},
+        {w:'rhythm', s:'The rhythm kept everyone dancing.'},
+        {w:'embarrass', s:'Try not to embarrass your teammate.'},
+        {w:'accommodation', s:'Our accommodation was comfortable.'},
+        {w:'definitely', s:'I definitely finished my homework.'},
+        {w:'privilege', s:'Voting is a privilege.'},
+        {w:'environment', s:'Protecting the environment matters.'},
+        {w:'argument', s:'We had an argument but made up.'},
+        {w:'parallel', s:'The lines are parallel.'},
+        {w:'occasionally', s:'We occasionally eat out.'}
+      ];
+      saveAndRender();
+    }
+  </script>
+</body>
+</html>
