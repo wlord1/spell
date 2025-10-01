@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Spelling Bee Trainer — Grade 5</title>
+  <title>Adelyn's Times Tables Practice</title>
   <style>
     :root{
       --bg:#0f172a;        /* slate-900 */
@@ -14,491 +14,631 @@
       --accent-2:#38bdf8;  /* sky-400 */
       --warn:#f59e0b;      /* amber-500 */
       --err:#ef4444;       /* red-500 */
+      --ok:#10b981;        /* emerald-500 */
+      --heart:#fb7185;     /* rose-400 */
     }
     *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;background:linear-gradient(180deg,#0d1328,#0f172a 20%,#0b1022);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;}
-    .wrap{max-width:980px;margin:0 auto;padding:24px}
-    h1{font-size:clamp(24px,3vw,36px);margin:0 0 12px;display:flex;gap:10px;align-items:center}
-    h1 .heart{display:inline-block;width:28px;height:28px;position:relative}
-    .heart:before,.heart:after{content:"";position:absolute;width:50%;height:80%;background:#ef4444;border-radius:12px 12px 8px 8px;left:25%;top:18%;transform:rotate(45deg);}
-    .heart:after{left:auto;right:25%;transform:rotate(-45deg)}
-    p.sub{color:var(--muted);margin-top:0}
+    html,body{min-height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 20% -10%, #1e293b 0%, #0b1222 60%, #080e1a 100%), var(--bg);
+      color:var(--text);
+      padding:24px; overflow-x:hidden;
+    }
+    .app{width:100%; max-width:1000px; position:relative; margin:0 auto}
+    .row{display:flex; gap:16px; flex-wrap:wrap}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+      border:1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+      border-radius:18px; padding:20px;
+    }
+    h1{font-size:28px; margin:0 0 8px; display:flex; align-items:center; gap:12px}
+    .subtitle{color:var(--muted); margin-bottom:12px}
+    .controls .section-title{font-weight:700; font-size:14px; color:#cbd5e1; margin:8px 0}
+    .pill{cursor:pointer; user-select:none; padding:10px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.15); transition: all .15s ease; font-weight:600}
+    .pill:hover{transform:translateY(-1px);}    
+    .pill.active{background:linear-gradient(180deg, rgba(56,189,248,.25), rgba(56,189,248,.1)); border-color:rgba(56,189,248,.7)}
+    button{cursor:pointer; border:none; border-radius:14px; padding:12px 16px; font-weight:700; letter-spacing:.2px}
+    .btn{background:linear-gradient(180deg, #22c55e, #16a34a); color:white; box-shadow:0 6px 18px rgba(34,197,94,.35)}
+    .btn.secondary{background:linear-gradient(180deg, #38bdf8, #0ea5e9); box-shadow:0 6px 18px rgba(14,165,233,.35)}
+    .btn.ghost{background:transparent; border:1px solid rgba(255,255,255,0.15); color:#e2e8f0}
+    .btn:disabled{opacity:.5; cursor:not-allowed}
+    .grid{display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px}
+    .stack{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+    .spacer{height:10px}
 
-    .grid{display:grid;gap:16px}
-    @media(min-width:880px){.grid{grid-template-columns:1fr 1fr}}
+    .quiz{display:grid; grid-template-columns: 1.1fr .9fr; gap:16px}
+    @media (max-width: 850px){ .quiz{grid-template-columns:1fr} }
 
-    .card{background:rgba(17,24,39,.7);backdrop-filter:saturate(120%) blur(6px);border:1px solid rgba(148,163,184,.2);border-radius:16px;padding:16px;box-shadow:0 10px 24px rgba(0,0,0,.3)}
-    .card h2{margin:0 0 10px;font-size:20px}
+    .equation{
+      position:relative;
+      font-size: clamp(32px, 7vw, 60px);
+      font-weight:800; letter-spacing:.5px; text-align:center;
+      padding:24px; border-radius:18px; border:1px solid rgba(255,255,255,0.08);
+      background: radial-gradient(600px 300px at 30% -30%, rgba(56,189,248,.15), rgba(56,189,248,.05));
+      min-height:120px; display:flex; align-items:center; justify-content:center;
+    }
+    /* per-question countdown bar (QUIZ): green -> amber -> red */
+    .qtimer{
+      position:absolute; left:0; top:0; height:4px;
+      background:linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+      width:100%; transform-origin:left; transform:scaleX(0); will-change:transform
+    }
 
-    .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .row > *{flex:0 0 auto}
-    .grow{flex:1 1 auto}
+    .answer-area{display:flex; gap:12px; align-items:center; justify-content:center}
+    .answer-area input{
+      width:140px; max-width:44vw; padding:12px 14px; border-radius:12px;
+      border:1px solid rgba(255,255,255,.15); font-size:28px; font-weight:800; text-align:center; background:#0b1222; color:var(--text)
+    }
+    .status{display:flex; gap:12px; align-items:center; flex-wrap:wrap; color:#cbd5e1}
+    .badge{padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.15); font-weight:700; font-size:12px}
+    .progress{height:10px; background:rgba(255,255,255,.08); border-radius:999px; overflow:hidden}
+    .progress > div{height:100%; background:linear-gradient(90deg, #22c55e, #38bdf8)}
 
-    input[type=text], textarea, select, input[type=number]{width:100%;border:1px solid rgba(148,163,184,.3);background:#0b1222;color:var(--text);padding:10px 12px;border-radius:10px;outline:none}
-    textarea{min-height:110px}
+    .stats small{color:#9ca3af}
+    table{width:100%; border-collapse:collapse; font-size:14px}
+    th,td{padding:10px; border-bottom:1px solid rgba(255,255,255,.08)}
+    thead th{position:sticky; top:0; background:#0b1222cc; backdrop-filter:saturate(180%) blur(6px)}
 
-    button{border:1px solid rgba(148,163,184,.3);background:linear-gradient(180deg,#111827,#0b1222);color:var(--text);padding:10px 14px;border-radius:12px;cursor:pointer;transition:.15s transform,.15s filter;}
-    button:hover{filter:brightness(1.1)}
-    button:active{transform:translateY(1px)}
-    .btn-accent{border-color:rgba(56,189,248,.5);box-shadow:0 0 0 2px rgba(56,189,248,.15) inset}
-    .btn-green{border-color:rgba(34,197,94,.5);box-shadow:0 0 0 2px rgba(34,197,94,.15) inset}
-    .btn-ghost{background:transparent;border-color:transparent}
+    /* Make the right-side stats card scroll independently so the page never gets "stuck" */
+    .stats{max-height:60vh; overflow:auto}
 
-    .chip{display:inline-flex;align-items:center;gap:6px;border:1px dashed rgba(148,163,184,.35);padding:6px 10px;border-radius:999px;color:var(--muted);font-size:13px}
-    .muted{color:var(--muted)}
-    .small{font-size:12px}
-    .center{display:flex;align-items:center;justify-content:center}
+    .heart{
+      display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; border-radius:50%;
+      background: radial-gradient(120% 120% at 30% 20%, #ff9ab0, #fb7185 60%, #be123c 100%);
+      box-shadow:0 8px 24px rgba(251,113,133,.35);
+    }
+    .heart svg{filter:drop-shadow(0 2px 2px rgba(0,0,0,.35)); width:22px; height:22px}
+
+    /* big faint background heart */
+    .bg-heart{position:absolute; right:-40px; top:-30px; width:180px; opacity:.15; transform:rotate(12deg)}
+
     .hidden{display:none !important}
 
-    .wordlist{display:flex;flex-wrap:wrap;gap:8px}
-    .tag{background:#0b1222;border:1px solid rgba(148,163,184,.25);padding:6px 10px;border-radius:999px}
-
-    .bigword{font-size:min(8vw,42px);letter-spacing:.02em;text-align:center;margin:12px 0 4px}
-    .sentence{color:var(--muted);text-align:center}
-
-    .status{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-top:8px}
-    .pill{border-radius:999px;padding:6px 10px;border:1px solid rgba(148,163,184,.25)}
-    .ok{color:#22c55e;border-color:rgba(34,197,94,.4)}
-    .bad{color:#ef4444;border-color:rgba(239,68,68,.4)}
-
-    .table{width:100%;border-collapse:collapse}
-    .table th,.table td{padding:10px;border-bottom:1px solid rgba(148,163,184,.2);text-align:left}
-
-    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;background:#0b1222;border:1px solid rgba(148,163,184,.35);padding:2px 6px;border-radius:6px}
-
-    .footer{margin-top:16px;color:var(--muted);font-size:12px}
+    .confetti{position:fixed; inset:0; pointer-events:none}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1><span class="heart" aria-hidden="true"></span> Spelling Bee Trainer <span class="muted small">(for Adelyn)</span></h1>
-    <p class="sub">Build a list, choose a mode, and practice with audio prompts. Great for 5th grade: supports example sentences, case sensitivity, and a graded test with a misspelled-words review.</p>
+  <div class="app">
+    <!-- Perfectly-proportioned background heart -->
+    <svg class="bg-heart" viewBox="0 0 24 24" fill="currentColor" style="color:#fb7185" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4c1.74 0 3.41 1.01 4.22 2.56C11.09 5.01 12.76 4 14.5 4 17 4 19 6 19 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+    </svg>
+    <div class="card">
+      <h1>
+        <span class="heart" aria-label="for my kiddo" title="for my kiddo">
+          <svg viewBox="0 0 24 24" fill="white" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
+            <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 6 4 4 6.5 4c1.74 0 3.41 1.01 4.22 2.56C11.09 5.01 12.76 4 14.5 4 17 4 19 6 19 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+          </svg>
+        </span>
+        Adelyn's Times Tables Practice
+      </h1>
+      <div class="subtitle">Pick tables, choose a mode, and go! Enter to submit (Practice) or timed auto-grade (Quiz).</div>
 
-    <div class="grid">
-      <!-- Left: Word List & Settings -->
-      <section class="card">
-        <h2>1) Word List</h2>
-        <div class="row">
-          <input id="word" type="text" placeholder="word (e.g., 'necessary')" />
-        </div>
-        <div class="row" style="margin-top:6px">
-          <input id="sentence" type="text" placeholder="optional sentence for context" />
-        </div>
-        <div class="row" style="margin-top:8px">
-          <button id="addBtn" class="btn-green">Add word</button>
-          <button id="clearBtn" class="btn-ghost">Clear list</button>
-          <span class="chip">Tip: <span class="kbd">Enter</span> adds word</span>
-        </div>
-        <div id="list" class="wordlist" style="margin-top:12px"></div>
-
-        <details style="margin-top:12px">
-          <summary class="muted">Import / Export list</summary>
-          <div class="row" style="margin-top:8px">
-            <textarea id="jsonIO" class="grow" placeholder='[{"w":"necessary","s":"It's necessary to study."},{"w":"rhythm"}]'></textarea>
-          </div>
-          <div class="row">
-            <button id="importBtn" class="btn-accent">Import JSON</button>
-            <button id="exportBtn">Copy JSON</button>
-            <button id="downloadBtn">Download .json</button>
-          </div>
-        </details>
-
-        <hr style="border:0;border-top:1px solid rgba(148,163,184,.2);margin:16px 0">
-
-        <h2>2) Settings</h2>
-        <div class="row">
-          <label class="chip"><input id="caseSensitive" type="checkbox" /> Case sensitive grading</label>
-          <label class="chip"><input id="stripPunct" type="checkbox" checked /> Ignore apostrophes / hyphens</label>
-          <label class="chip"><input id="showWordPractice" type="checkbox" checked /> Show word in Practice mode</label>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <div class="grow">
-            <label class="small muted">Voice</label>
-            <select id="voiceSelect"></select>
-          </div>
-          <div>
-            <label class="small muted">Rate</label>
-            <input id="rate" type="number" min="0.5" max="1.5" step="0.1" value="1" style="width:90px">
-          </div>
-          <div>
-            <label class="small muted">Volume</label>
-            <input id="volume" type="number" min="0" max="1" step="0.1" value="1" style="width:90px">
-          </div>
-        </div>
-      </section>
-
-      <!-- Right: Modes & Runner -->
-      <section class="card">
-        <h2>3) Choose a Mode</h2>
-        <div class="row">
-          <button id="practiceBtn" class="btn-accent">Practice</button>
-          <button id="testBtn" class="">Test</button>
-          <input id="count" type="number" min="1" value="10" style="width:110px" />
-          <span class="chip"># of words</span>
-        </div>
-
-        <div id="runner" style="margin-top:12px">
-          <div id="promptWrap" class="center">
-            <div style="width:100%">
-              <div id="bigWord" class="bigword hidden"></div>
-              <div id="sentenceHint" class="sentence hidden"></div>
-            </div>
-          </div>
-          <div class="row" style="margin-top:10px">
-            <input id="answer" type="text" class="grow" placeholder="Type the spelling and press Enter" autocomplete="off" />
-            <button id="speakBtn">🔊 Listen</button>
-            <button id="hintBtn">Hint</button>
-            <button id="revealBtn">Reveal</button>
-          </div>
-          <div class="status small">
-            <div>
-              <span id="progress" class="pill">0 / 0</span>
-              <span id="last" class="pill"></span>
-            </div>
-            <div class="muted">Shortcuts: <span class="kbd">Enter</span> submit, <span class="kbd">⌘/Ctrl+L</span> listen, <span class="kbd">⌘/Ctrl+H</span> hint</div>
+      <div class="controls row">
+        <div class="card" style="flex:2; min-width:280px">
+          <div class="section-title">1) Choose Tables (×2–×9)</div>
+          <div class="grid" id="tableGrid"></div>
+          <div class="spacer"></div>
+          <div class="stack">
+            <button class="btn ghost" id="selectAll">Select All</button>
+            <button class="btn ghost" id="clearAll">Clear</button>
+            <span class="badge" id="selectedCount">0 selected</span>
           </div>
         </div>
 
-        <div id="results" class="hidden" style="margin-top:12px">
-          <h3>Results</h3>
-          <div class="row">
-            <div id="score" class="pill"></div>
-            <button id="retryMissed" class="btn-green hidden">Retry missed only</button>
+        <div class="card" style="flex:1; min-width:260px">
+          <div class="section-title">2) Mode</div>
+          <div class="stack">
+            <label><input type="radio" name="mode" value="practice" checked> Practice</label>
+            <label><input type="radio" name="mode" value="quiz"> Quiz</label>
           </div>
-          <table class="table" id="resultsTable"></table>
+          <div class="spacer"></div>
+          <div class="stack" id="practiceConfig">
+            <label>Practice questions (optional): <input id="practiceCount" type="number" min="5" max="200" step="5" placeholder="∞" style="width:90px"></label>
+          </div>
+          <div class="stack hidden" id="quizConfig">
+            <label>Quiz questions: <input id="quizCount" type="number" min="5" max="200" step="5" value="20" style="width:90px"></label>
+            <label>Seconds per question: <input id="quizSeconds" type="number" min="1" max="10" step="1" value="5" style="width:60px"></label>
+          </div>
+          <div class="spacer"></div>
+          <div class="stack">
+            <button class="btn" id="startBtn">Start</button>
+            <button class="btn secondary hidden" id="playAgainBtn">Play Again</button>
+            <button class="btn secondary" id="resetStatsBtn">Reset Stats</button>
+          </div>
         </div>
-      </section>
+      </div>
     </div>
 
-    <div class="footer">Data is saved locally in your browser. No accounts needed. Works offline once loaded.</div>
+    <div class="spacer" style="height:18px"></div>
+
+    <div class="quiz">
+      <div class="card">
+        <div id="equation" class="equation">Pick tables and press Start<div class="qtimer" id="qtimer"></div></div>
+        <div class="spacer"></div>
+        <div class="answer-area">
+          <input id="answer" type="number" inputmode="numeric" placeholder="?" disabled />
+          <button class="btn" id="submitBtn" disabled>Submit</button>
+          <button class="btn ghost" id="nextBtn" disabled>Next</button>
+        </div>
+        <div class="spacer"></div>
+        <div class="status">
+          <div class="badge" id="resultBadge">—</div>
+          <div class="badge" id="timerBadge">⏱ 0s</div>
+          <div class="badge" id="progressBadge">0/0</div>
+          <div class="badge" id="scoreBadge">✅ 0 ⟂ ❌ 0</div>
+          <div class="badge" id="streakBadge">🔥 0</div>
+        </div>
+        <div class="spacer"></div>
+        <div class="progress"><div id="progressBar" style="width:0%"></div></div>
+      </div>
+
+      <div class="card stats">
+        <h2 style="margin-top:0">Stats & History</h2>
+
+        <!-- Encouragement sparkline -->
+        <div class="section-title">Encouragement</div>
+        <canvas id="spark" style="width:100%; height:80px; display:block"></canvas>
+        <div class="subtitle" id="sparkCaption">Last 0 questions · 0% accuracy</div>
+
+        <div id="statsNote" class="subtitle">Showing only facts you’ve missed at least once (saved locally on this device).</div>
+        <table id="statsTable">
+          <thead><tr><th style="text-align:left">Fact</th><th>Seen</th><th>Correct</th><th>Accuracy</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 
+  <canvas class="confetti" id="confetti"></canvas>
+
   <script>
-    // ----- Persistence helpers -----
-    const store = {
-      get key(){ return 'spellingbee_v1'; },
-      save(data){ localStorage.setItem(this.key, JSON.stringify(data)); },
-      load(){ try{ return JSON.parse(localStorage.getItem(this.key)||'{}'); }catch{return {}} }
+    // === Config: allowed factors are strictly 2–9 ===
+    const ALLOWED = [2,3,4,5,6,7,8,9];
+
+    // --- State ---
+    const tableGrid = document.getElementById('tableGrid');
+    const selectedCount = document.getElementById('selectedCount');
+    const selectAllBtn = document.getElementById('selectAll');
+    const clearAllBtn = document.getElementById('clearAll');
+    const startBtn = document.getElementById('startBtn');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+    const resetStatsBtn = document.getElementById('resetStatsBtn');
+
+    const practiceConfig = document.getElementById('practiceConfig');
+    const quizConfig = document.getElementById('quizConfig');
+
+    const equationEl = document.getElementById('equation');
+    let qtimerEl = document.getElementById('qtimer');
+    const answerEl = document.getElementById('answer');
+    const submitBtn = document.getElementById('submitBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    const resultBadge = document.getElementById('resultBadge');
+    const timerBadge = document.getElementById('timerBadge');
+    const progressBadge = document.getElementById('progressBadge');
+    const scoreBadge = document.getElementById('scoreBadge');
+    const streakBadge = document.getElementById('streakBadge');
+    const progressBar = document.getElementById('progressBar');
+
+    const practiceCountEl = document.getElementById('practiceCount');
+    const quizCountEl = document.getElementById('quizCount');
+    const quizSecondsEl = document.getElementById('quizSeconds');
+
+    const statsTableBody = document.querySelector('#statsTable tbody');
+
+    const confettiCanvas = document.getElementById('confetti');
+    const cfx = confettiCanvas.getContext('2d');
+
+    let selected = new Set();
+    let mode = 'practice';
+    let running = false;
+    let timer = 0, timerInt = null; // session timer (informational)
+    let totalQ = 0, currentQ = 0, correct = 0, wrong = 0, streak = 0;
+
+    let pool = []; // deck of remaining questions (no repeats within a lap)
+    let current = null;
+
+    // quiz per-question timing (user-configurable)
+    let quizSeconds = 5; // updated from input when starting quiz
+    let perQDeadline = 0; // timestamp (ms)
+    let perQRAF = null;   // requestAnimationFrame id
+    let lastWholeSec = Infinity;
+
+    const FACT_KEY = 'timesTableStats_v1';
+
+    // --- Build factors grid (2..9) ---
+    for (const i of ALLOWED){
+      const pill = document.createElement('div');
+      pill.className = 'pill';
+      pill.textContent = `×${i}`;
+      pill.dataset.val = i;
+      pill.addEventListener('click',()=>{
+        if (selected.has(i)) selected.delete(i); else selected.add(i);
+        pill.classList.toggle('active');
+        updateSelectedCount();
+      });
+      tableGrid.appendChild(pill);
     }
 
-    // ----- State -----
-    const state = {
-      words: [], // {w: 'word', s: 'sentence?'}
-      mode: 'practice',
-      order: [],
-      index: 0,
-      answered: [], // {w, correct, user}
-      showWord: true,
-      caseSensitive: false,
-      stripPunct: true,
-      voice: null,
-      rate: 1,
-      volume: 1,
+    function updateSelectedCount(){
+      selectedCount.textContent = `${selected.size} selected`;
     }
 
-    // ----- Elements -----
-    const els = {
-      word: document.getElementById('word'),
-      sentence: document.getElementById('sentence'),
-      addBtn: document.getElementById('addBtn'),
-      clearBtn: document.getElementById('clearBtn'),
-      list: document.getElementById('list'),
-      jsonIO: document.getElementById('jsonIO'),
-      importBtn: document.getElementById('importBtn'),
-      exportBtn: document.getElementById('exportBtn'),
-      downloadBtn: document.getElementById('downloadBtn'),
-
-      caseSensitive: document.getElementById('caseSensitive'),
-      stripPunct: document.getElementById('stripPunct'),
-      showWordPractice: document.getElementById('showWordPractice'),
-      voiceSelect: document.getElementById('voiceSelect'),
-      rate: document.getElementById('rate'),
-      volume: document.getElementById('volume'),
-
-      practiceBtn: document.getElementById('practiceBtn'),
-      testBtn: document.getElementById('testBtn'),
-      count: document.getElementById('count'),
-
-      bigWord: document.getElementById('bigWord'),
-      sentenceHint: document.getElementById('sentenceHint'),
-      answer: document.getElementById('answer'),
-      speakBtn: document.getElementById('speakBtn'),
-      hintBtn: document.getElementById('hintBtn'),
-      revealBtn: document.getElementById('revealBtn'),
-      progress: document.getElementById('progress'),
-      last: document.getElementById('last'),
-
-      results: document.getElementById('results'),
-      score: document.getElementById('score'),
-      resultsTable: document.getElementById('resultsTable'),
-      retryMissed: document.getElementById('retryMissed'),
+    selectAllBtn.onclick = ()=>{
+      selected = new Set(ALLOWED);
+      document.querySelectorAll('#tableGrid .pill').forEach(p=>p.classList.add('active'));
+      updateSelectedCount();
+    }
+    clearAllBtn.onclick = ()=>{
+      selected.clear();
+      document.querySelectorAll('#tableGrid .pill').forEach(p=>p.classList.remove('active'));
+      updateSelectedCount();
     }
 
-    // ----- Utility functions -----
-    const clone = o => JSON.parse(JSON.stringify(o));
-    const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a }
-    const normalize = (s) => {
-      if(state.stripPunct){ s = s.replace(/[\'\-]/g,'') }
-      return state.caseSensitive ? s : s.toLowerCase();
-    }
-
-    function speak(text, opts={}){
-      if(!('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      if(state.voice) u.voice = state.voice;
-      u.rate = state.rate; u.volume = state.volume; u.pitch = 1;
-      speechSynthesis.speak(u);
-    }
-    function speakWord(wObj){
-      const {w,s} = wObj;
-      speak(w);
-      if(s) setTimeout(()=>speak(s), Math.max(600, 900/state.rate));
-    }
-
-    // ----- Rendering -----
-    function renderList(){
-      els.list.innerHTML = '';
-      state.words.forEach((wObj, idx)=>{
-        const tag = document.createElement('span');
-        tag.className='tag';
-        tag.textContent = wObj.w;
-        tag.title = wObj.s||'';
-        tag.addEventListener('click',()=>{
-          if(confirm(`Remove "${wObj.w}"?`)){
-            state.words.splice(idx,1); saveAndRender();
-          }
-        })
-        els.list.appendChild(tag)
+    document.querySelectorAll('input[name="mode"]').forEach(r=>{
+      r.addEventListener('change', ()=>{
+        mode = r.value;
+        toggleModeUI();
       })
+    });
+
+    function toggleModeUI(){
+      const isQuiz = mode === 'quiz';
+      practiceConfig.classList.toggle('hidden', isQuiz);
+      quizConfig.classList.toggle('hidden', !isQuiz);
+    }
+    toggleModeUI();
+
+    function clamp(n,min,max){ return Math.max(min, Math.min(max, n)); }
+
+    // --- Stats (localStorage) ---
+    const loadStats = ()=> JSON.parse(localStorage.getItem(FACT_KEY) || '{}');
+    const saveStats = (s)=> localStorage.setItem(FACT_KEY, JSON.stringify(s));
+
+    function bumpStats(a,b, wasCorrect){
+      const key = `${a}x${b}`;
+      const s = loadStats();
+      if (!s[key]) s[key] = {seen:0, correct:0};
+      s[key].seen += 1;
+      if (wasCorrect) s[key].correct += 1;
+      saveStats(s);
+      renderStatsTable();
     }
 
-    function renderRunner(){
-      const total = state.order.length;
-      els.progress.textContent = `${Math.min(state.index, total) } / ${total}`;
-      els.last.textContent = '';
+    function renderStatsTable(){
+      const s = loadStats();
 
-      const done = state.index >= total;
-      if(done){
-        finish();
+      // Only include facts with at least one miss (seen > correct) and within allowed domain
+      const keysWithMisses = Object.keys(s)
+        .filter(k => s[k].seen > s[k].correct)
+        .filter(k => { const [a,b] = k.split('x').map(Number); return ALLOWED.includes(a) && ALLOWED.includes(b); });
+
+      const rows = keysWithMisses
+        .sort((k1,k2)=>{
+          const acc1 = s[k1].seen ? s[k1].correct / s[k1].seen : 0;
+          const acc2 = s[k2].seen ? s[k2].correct / s[k2].seen : 0;
+          return acc1 - acc2; // lowest accuracy at top
+        })
+        .map(k=>{
+          const {seen, correct} = s[k];
+          const acc = seen ? Math.round(100 * correct / seen) : 0;
+          return `<tr><td style="text-align:left">${k.replace('x',' × ')}</td><td style="text-align:center">${seen}</td><td style="text-align:center">${correct}</td><td style="text-align:center">${acc}%</td></tr>`;
+        }).join('');
+
+      statsTableBody.innerHTML = rows || '<tr><td colspan="4" style="text-align:center; color:#9ca3af">No misses yet — nice!</td></tr>';
+    }
+    renderStatsTable();
+
+    resetStatsBtn.onclick = ()=>{
+      if(confirm('Reset all local stats?')){ localStorage.removeItem(FACT_KEY); renderStatsTable(); drawSpark(); }
+    }
+
+    // --- Encouragement Sparkline (rolling accuracy over session) ---
+    const ACC_HISTORY_MAX = 60; // keep last N points
+    let accHistory = [];
+
+    function updateEncouragement() {
+      const acc = currentQ ? correct / currentQ : 0; // session accuracy
+      accHistory.push(acc);
+      if (accHistory.length > ACC_HISTORY_MAX) accHistory.shift();
+      drawSpark();
+    }
+
+    function drawSpark() {
+      const canvas = document.getElementById('spark');
+      const cap = document.getElementById('sparkCaption');
+      if (!canvas) return;
+
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      const cssW = Math.max(300, Math.round(rect.width || 300));
+      const cssH = Math.max(60, Math.round(rect.height || 80));
+      canvas.width  = cssW * dpr;
+      canvas.height = cssH * dpr;
+
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const w = canvas.width / dpr, h = canvas.height / dpr;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // baseline grid
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+      ctx.lineWidth = 1;
+      [0.25, 0.5, 0.75, 1].forEach(level => {
+        const y = h - (level * (h - 10)) - 5;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      });
+
+      if (accHistory.length < 2){
+        if (cap) cap.textContent = `Last ${currentQ} questions · ${Math.round((currentQ? (correct/currentQ):0)*100)}% accuracy`;
         return;
       }
 
-      const cur = state.words[state.order[state.index]];
-      const showWord = state.mode==='practice' && state.showWord;
-      els.bigWord.textContent = showWord ? cur.w : '';
-      els.bigWord.classList.toggle('hidden', !showWord);
+      // line path
+      const step = (w - 2) / (accHistory.length - 1);
+      ctx.beginPath();
+      accHistory.forEach((v, i) => {
+        const x = 1 + i * step;
+        const y = h - (v * (h - 10)) - 5;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      });
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(56,189,248,1)'; // sky-400
+      ctx.stroke();
 
-      const hasSent = !!cur.s;
-      els.sentenceHint.textContent = hasSent ? cur.s : '';
-      els.sentenceHint.classList.toggle('hidden', !hasSent);
+      // gradient fill under line (subtle)
+      const lastX = 1 + (accHistory.length - 1) * step;
+      const lastY = h - (accHistory[accHistory.length - 1] * (h - 10)) - 5;
+      ctx.lineTo(lastX, h - 2);
+      ctx.lineTo(1, h - 2);
+      ctx.closePath();
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0, 'rgba(56,189,248,0.25)');
+      grad.addColorStop(1, 'rgba(56,189,248,0.00)');
+      ctx.fillStyle = grad;
+      ctx.fill();
 
-      els.answer.value = '';
-      els.answer.focus();
+      // last point dot (green if rising, red if falling)
+      const last = accHistory[accHistory.length - 1];
+      const prev = accHistory[accHistory.length - 2];
+      const rising = last >= prev;
+      ctx.beginPath();
+      ctx.arc(lastX, lastY, 3, 0, Math.PI * 2);
+      ctx.fillStyle = rising ? '#10b981' : '#ef4444'; // ok / err
+      ctx.fill();
+
+      // caption
+      if (cap) cap.textContent = `Last ${currentQ} questions · ${Math.round(last * 100)}% accuracy ${rising ? '↗' : '↘'}`;
     }
 
-    function renderSettings(){
-      els.caseSensitive.checked = state.caseSensitive;
-      els.stripPunct.checked = state.stripPunct;
-      els.showWordPractice.checked = state.showWord;
-      els.rate.value = state.rate; els.volume.value = state.volume;
-    }
+    window.addEventListener('resize', drawSpark);
 
-    function save(){
-      store.save({words: state.words, cfg:{caseSensitive: state.caseSensitive, stripPunct: state.stripPunct, showWord: state.showWord, rate: state.rate, volume: state.volume, voiceName: state.voice?.name||null}})
-    }
-    function load(){
-      const data = store.load();
-      if(data.words) state.words = data.words;
-      if(data.cfg){
-        state.caseSensitive = !!data.cfg.caseSensitive;
-        state.stripPunct = data.cfg.stripPunct!==false;
-        state.showWord = data.cfg.showWord!==false;
-        state.rate = Number(data.cfg.rate||1);
-        state.volume = Number(data.cfg.volume||1);
+    // --- Quiz generation (2–9 only) ---
+    function buildPool(){
+      const sel = selected.size ? Array.from(selected) : ALLOWED.slice();
+      const deck = [];
+      for (const a of sel){
+        for (const b of ALLOWED){
+          deck.push({a,b,answer:a*b});
+        }
       }
-      renderList();
-      renderSettings();
+      // shuffle (Fisher–Yates)
+      for (let i=deck.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
     }
 
-    // ----- Session control -----
-    function begin(mode){
-      if(state.words.length===0){ alert('Add a few words first.'); return }
-      state.mode = mode;
-      const n = Math.min(parseInt(els.count.value||10,10), state.words.length);
-      state.order = shuffle([...Array(state.words.length).keys()]).slice(0,n);
-      state.index = 0;
-      state.answered = [];
-      els.results.classList.add('hidden');
-      renderRunner();
-      // For tests, auto-speak word first
-      if(mode==='test') speakWord(currentWord());
+    function start(){
+      if (!selected.size){ selectAllBtn.click(); }
+      pool = buildPool();
+      mode = document.querySelector('input[name="mode"]:checked').value;
+
+      // counts per mode
+      if (mode==='practice'){
+        const n = parseInt(practiceCountEl.value,10);
+        totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : Infinity;
+        submitBtn.disabled = false;
+        nextBtn.disabled = false;
+      } else { // quiz
+        const n = parseInt(quizCountEl.value,10);
+        totalQ = Number.isFinite(n) && n>0 ? Math.min(n, 200) : 20;
+        submitBtn.disabled = true;   // no manual submit in quiz
+        nextBtn.disabled = true;     // no manual next in quiz
+
+        // seconds per question (clamped 1..10)
+        quizSeconds = clamp(parseInt(quizSecondsEl.value,10) || 5, 1, 10);
+      }
+
+      // reset session state
+      currentQ = 0; correct = 0; wrong = 0; streak = 0; timer = 0; running = true;
+      answerEl.disabled=false;
+      playAgainBtn.classList.add('hidden');
+      resultBadge.textContent = mode==='quiz' ? `Quiz: ${quizSeconds}s per question` : 'Practice mode';
+      resultBadge.style.borderColor='rgba(255,255,255,.15)';
+      setTimerBadge(0);
+      progress();
+
+      // reset encouragement spark
+      accHistory = [];
+      drawSpark();
+
+      stopSessionTimer();
+      timerInt = setInterval(()=>{ timer += 1; }, 1000); // (optional display later)
+
+      next(); // draw first question
+      answerEl.focus();
+      document.querySelector('.quiz').scrollIntoView({block:'start', behavior:'smooth'});
     }
 
-    function currentWord(){
-      return state.words[state.order[state.index]];
+    function stopSessionTimer(){ if (timerInt) clearInterval(timerInt); timerInt=null; }
+
+    function finish(){
+      running=false; stopSessionTimer(); clearPerQAnim();
+      answerEl.disabled=true; submitBtn.disabled=true; nextBtn.disabled=true;
+      equationEl.innerHTML = `Done! Score: ${correct} correct, ${wrong} wrong.`;
+      playAgainBtn.classList.remove('hidden');
+      setTimerBadge(0);
+      fireConfetti();
+    }
+
+    // --- No-repeat draw (until deck is empty), then reshuffle for next lap ---
+    function next(){
+      if (!running) return;
+      if (isFinite(totalQ) && currentQ>=totalQ){ return finish(); }
+      if (pool.length === 0) pool = buildPool();
+
+      // draw without replacement
+      const j = Math.floor(Math.random() * pool.length);
+      current = pool.splice(j, 1)[0];
+
+      equationEl.innerHTML = `${current.a} × ${current.b} = ?<div class="qtimer" id="qtimer"></div>`;
+      qtimerEl = document.getElementById('qtimer');
+      qtimerEl.style.transform = 'scaleX(0)';
+      answerEl.value='';
+      currentQ++;
+      progress();
+
+      if (mode==='quiz') startPerQCountdown(); else clearPerQAnim();
+    }
+
+    function progress(){
+      progressBadge.textContent = `${isFinite(totalQ)? Math.min(currentQ,totalQ):currentQ}/${isFinite(totalQ)? totalQ:'∞'}`;
+      scoreBadge.textContent = `✅ ${correct} ⟂ ❌ ${wrong}`;
+      streakBadge.textContent = `🔥 ${streak}`;
+      const pct = isFinite(totalQ) ? Math.min(100, Math.round(100*currentQ/totalQ)) : 0;
+      progressBar.style.width = pct + '%';
     }
 
     function submit(){
-      if(state.index >= state.order.length) return;
-      const cur = currentWord();
-      const user = els.answer.value.trim();
-      const correct = normalize(user) === normalize(cur.w);
-      state.answered.push({w:cur.w, s:cur.s||'', user, correct});
-      els.last.textContent = (correct? '✔ Correct' : `✖ ${user || '—'} → ${cur.w}`);
-      els.last.className = 'pill ' + (correct? 'ok':'bad');
-      state.index++;
-      renderRunner();
-      if(state.mode==='test' && state.index < state.order.length){
-        setTimeout(()=>speakWord(currentWord()), 250);
+      if (!running || !current) return;
+      if (mode==='quiz') return; // disabled in quiz
+      const value = parseInt(answerEl.value,10);
+      const ok = (value === current.answer);
+      gradeAndAdvance(ok, /*auto*/ false);
+    }
+
+    function gradeAndAdvance(ok, auto){
+      bumpStats(current.a, current.b, ok);
+      if (ok){
+        correct++; streak++; flashBadge(resultBadge, `Correct! ${current.a}×${current.b}=${current.answer}`, 'ok');
+        tinyBurst();
+      } else {
+        wrong++; streak=0; flashBadge(resultBadge, auto ? `Time! Answer: ${current.answer}` : `Not quite. It was ${current.answer}`, 'err');
+      }
+      progress();
+      updateEncouragement();
+      if (mode==='practice'){
+        next();
+        if (answerEl.getBoundingClientRect().top > 0) answerEl.focus();
       }
     }
 
-    function finish(){
-      els.results.classList.remove('hidden');
-      const total = state.answered.length;
-      const correct = state.answered.filter(a=>a.correct).length;
-      const pct = Math.round(100*correct/Math.max(1,total));
-      els.score.textContent = `Score: ${correct} / ${total} (${pct}%)`;
-      els.resultsTable.innerHTML = '<tr><th>#</th><th>Word</th><th>Your Answer</th><th>Result</th><th>Sentence</th></tr>' +
-        state.answered.map((a,i)=>`<tr><td>${i+1}</td><td>${a.w}</td><td>${a.user||'—'}</td><td>${a.correct? '✔':'✖'}</td><td>${a.s||''}</td></tr>`).join('');
-      const missed = state.answered.filter(a=>!a.correct);
-      els.retryMissed.classList.toggle('hidden', missed.length===0);
-      els.progress.textContent = `${state.order.length} / ${state.order.length}`;
+    // --- Per-question quiz countdown (smooth via rAF + transform) ---
+    function clearPerQAnim(){ if (perQRAF){ cancelAnimationFrame(perQRAF); perQRAF=null; } }
+
+    function startPerQCountdown(){
+      clearPerQAnim();
+      const duration = quizSeconds * 1000;
+      const start = performance.now();
+      perQDeadline = start + duration;
+      lastWholeSec = Infinity;
+
+      function tick(now){
+        const remainingMs = Math.max(0, perQDeadline - now);
+        const remainingS = Math.ceil(remainingMs/1000);
+        if (remainingS !== lastWholeSec){ setTimerBadge(remainingS); lastWholeSec = constClamp(remainingS); }
+        const pct = 1 - (remainingMs / duration);
+        if (qtimerEl) qtimerEl.style.transform = `scaleX(${pct})`;
+        if (remainingMs <= 0){
+          clearPerQAnim();
+          autoGradeQuiz();
+          return;
+        }
+        perQRAF = requestAnimationFrame(tick);
+      }
+      perQRAF = requestAnimationFrame(tick);
     }
 
-    function retryMissedOnly(){
-      const missed = state.answered.filter(a=>!a.correct);
-      if(missed.length===0){ alert('Nothing to retry. Great job!'); return }
-      // rebuild words array as just missed (preserve sentences)
-      const map = new Map(state.words.map(o=>[o.w,o]));
-      state.order = shuffle(missed.map(m=> state.words.findIndex(o=>o.w===m.w))).filter(i=>i>=0);
-      state.index = 0; state.answered = [];
-      renderRunner();
-      if(state.mode==='test') speakWord(currentWord());
+    // helper for non-negative seconds display
+    function constClamp(n){ return Math.max(0, n); }
+    function setTimerBadge(s){ timerBadge.textContent = `⏱ ${s}s`; }
+
+    function autoGradeQuiz(){
+      if (!running || !current) return;
+      const value = parseInt(answerEl.value,10);
+      const ok = (value === current.answer);
+      gradeAndAdvance(ok, /*auto*/ true);
+      if (isFinite(totalQ) && currentQ>=totalQ){ finish(); }
+      else { next(); answerEl.focus(); }
     }
 
-    // ----- Event wiring -----
-    els.addBtn.addEventListener('click', ()=>{
-      const w = els.word.value.trim();
-      const s = els.sentence.value.trim();
-      if(!w){ els.word.focus(); return }
-      state.words.push({w, ...(s? {s}: {})});
-      els.word.value = ''; els.sentence.value='';
-      saveAndRender();
-      els.word.focus();
-    })
-    els.word.addEventListener('keydown', e=>{ if(e.key==='Enter') els.addBtn.click() })
-    els.sentence.addEventListener('keydown', e=>{ if(e.key==='Enter') els.addBtn.click() })
+    function flashBadge(el, text, type){
+      el.textContent = text;
+      const colors = {ok: 'var(--ok)', err: 'var(--err)', warn: 'var(--warn)'};
+      el.style.borderColor = colors[type] || 'rgba(255,255,255,.15)';
+      el.style.boxShadow = `0 0 0 2px ${colors[type]}22`;
+      setTimeout(()=>{ el.style.boxShadow='none'; }, 250);
+    }
 
-    els.clearBtn.addEventListener('click', ()=>{
-      if(confirm('Clear the entire list?')){ state.words=[]; saveAndRender() }
-    })
-
-    els.practiceBtn.addEventListener('click', ()=> begin('practice'))
-    els.testBtn.addEventListener('click', ()=> begin('test'))
-    els.answer.addEventListener('keydown', e=>{ if(e.key==='Enter') submit() })
-
-    els.speakBtn.addEventListener('click', ()=>{
-      if(state.index < state.order.length) speakWord(currentWord())
-    })
-
-    els.hintBtn.addEventListener('click', ()=>{
-      if(state.index >= state.order.length) return;
-      const {w} = currentWord();
-      const shown = els.answer.value;
-      const next = w.slice(0, shown.length+1);
-      els.answer.value = next;
-      els.answer.focus();
-    })
-
-    els.revealBtn.addEventListener('click', ()=>{
-      if(state.index >= state.order.length) return;
-      const {w} = currentWord();
-      els.answer.value = w;
-      els.answer.focus();
-    })
-
-    els.caseSensitive.addEventListener('change', e=>{ state.caseSensitive = e.target.checked; save() })
-    els.stripPunct.addEventListener('change', e=>{ state.stripPunct = e.target.checked; save() })
-    els.showWordPractice.addEventListener('change', e=>{ state.showWord = e.target.checked; save() })
-
-    els.rate.addEventListener('change', e=>{ state.rate = Number(e.target.value||1); save() })
-    els.volume.addEventListener('change', e=>{ state.volume = Number(e.target.value||1); save() })
-
-    els.retryMissed.addEventListener('click', retryMissedOnly)
-
-    // Shortcuts
-    window.addEventListener('keydown', (e)=>{
-      if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='l'){ e.preventDefault(); els.speakBtn.click(); }
-      if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='h'){ e.preventDefault(); els.hintBtn.click(); }
-    })
-
-    // Import/Export
-    els.exportBtn.addEventListener('click', ()=>{
-      els.jsonIO.value = JSON.stringify(state.words);
-      els.jsonIO.select(); document.execCommand('copy');
-    })
-    els.importBtn.addEventListener('click', ()=>{
-      try{
-        const arr = JSON.parse(els.jsonIO.value||'[]');
-        if(!Array.isArray(arr)) throw new Error('JSON must be an array');
-        const cleaned = arr.map(x=>({w:String(x.w||'').trim(), s:String(x.s||'').trim()})).filter(x=>x.w);
-        state.words = cleaned; saveAndRender();
-      }catch(err){ alert('Invalid JSON') }
-    })
-    els.downloadBtn.addEventListener('click', ()=>{
-      const blob = new Blob([JSON.stringify(state.words,null,2)], {type:'application/json'});
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'spelling-list.json';
-      a.click();
-      URL.revokeObjectURL(a.href);
-    })
-
-    // Speech synthesis voices
-    function loadVoices(){
-      const voices = speechSynthesis.getVoices();
-      els.voiceSelect.innerHTML = '<option value="">System Default</option>' +
-        voices.map((v,i)=>`<option value="${i}">${v.name} ${v.lang.includes('en')?'' : '('+v.lang+')'}</option>`).join('');
-      const saved = store.load().cfg?.voiceName;
-      if(saved){
-        const idx = voices.findIndex(v=>v.name===saved);
-        if(idx>=0){ els.voiceSelect.value = String(idx); state.voice = voices[idx]; }
+    // --- Confetti ---
+    let flakes=[]; let raf=null;
+    function resizeCanvas(){ confettiCanvas.width=window.innerWidth; confettiCanvas.height=window.innerHeight; }
+    window.addEventListener('resize', resizeCanvas); resizeCanvas();
+    function fireConfetti(){
+      spawn(200);
+      animate();
+      setTimeout(()=>{ cancelAnimationFrame(raf); cfx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height); flakes=[]; }, 1500);
+    }
+    function tinyBurst(){ spawn(40); animate(); setTimeout(()=>{ cancelAnimationFrame(raf); cfx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height); flakes=[]; }, 600); }
+    function spawn(n){
+      for (let i=0;i<n;i++){
+        flakes.push({
+          x: confettiCanvas.width/2 + (Math.random()-0.5)*120,
+          y: confettiCanvas.height/2 + (Math.random()-0.5)*40,
+          r: 2 + Math.random()*4,
+          vx: (Math.random()-0.5)*6,
+          vy: - (2 + Math.random()*4),
+          a: Math.random()*Math.PI,
+          va: (Math.random()-0.5)*0.2
+        })
       }
     }
-    speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
-
-    els.voiceSelect.addEventListener('change', e=>{
-      const voices = speechSynthesis.getVoices();
-      const idx = Number(e.target.value);
-      state.voice = Number.isFinite(idx) ? voices[idx] : null;
-      save();
-    })
-
-    function saveAndRender(){ save(); renderList(); }
-
-    // Init
-    load();
-
-    // Sample starter list if empty
-    if(state.words.length===0){
-      state.words = [
-        {w:'necessary', s:"It's necessary to study."},
-        {w:'rhythm', s:'The rhythm kept everyone dancing.'},
-        {w:'embarrass', s:'Try not to embarrass your teammate.'},
-        {w:'accommodation', s:'Our accommodation was comfortable.'},
-        {w:'definitely', s:'I definitely finished my homework.'},
-        {w:'privilege', s:'Voting is a privilege.'},
-        {w:'environment', s:'Protecting the environment matters.'},
-        {w:'argument', s:'We had an argument but made up.'},
-        {w:'parallel', s:'The lines are parallel.'},
-        {w:'occasionally', s:'We occasionally eat out.'}
-      ];
-      saveAndRender();
+    function animate(){
+      cancelAnimationFrame(raf);
+      function step(){
+        cfx.clearRect(0,0,confettiCanvas.width, confettiCanvas.height);
+        flakes.forEach(f=>{
+          f.vy += 0.08; f.x += f.vx; f.y += f.vy; f.a += f.va;
+          cfx.save(); cfx.translate(f.x, f.y); cfx.rotate(f.a);
+          cfx.fillStyle = `hsl(${(f.x+f.y)%360}, 90%, 60%)`;
+          cfx.fillRect(-f.r, -f.r, 2*f.r, 2*f.r);
+          cfx.restore();
+        });
+        flakes = flakes.filter(f=> f.y < confettiCanvas.height+10);
+        raf = requestAnimationFrame(step);
+      }
+      raf = requestAnimationFrame(step);
     }
+
+    // --- Events ---
+    startBtn.onclick = start;
+    playAgainBtn.onclick = start;
+    submitBtn.onclick = submit;
+    nextBtn.onclick = ()=>{ if (mode==='practice') next(); };
+
+    // Keyboard behavior: Enter only in Practice mode
+    answerEl.addEventListener('keydown', (e)=>{
+      if (e.key==='Enter'){
+        if (mode==='practice') submit();
+        else e.preventDefault();
+      }
+    });
   </script>
 </body>
 </html>
